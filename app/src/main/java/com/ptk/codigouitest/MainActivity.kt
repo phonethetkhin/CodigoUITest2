@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.ptk.codigouitest.ui.screen.HomeScreen
+import com.ptk.codigouitest.ui.screen.SlideShow
 import com.ptk.codigouitest.ui.theme.CodigoUITestTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     HomeScreen()
+//                    SlideShow(){}
                 }
             }
         }

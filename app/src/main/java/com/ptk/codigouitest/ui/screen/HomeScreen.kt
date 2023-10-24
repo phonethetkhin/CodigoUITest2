@@ -1,10 +1,16 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.ptk.codigouitest.ui.screen
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +33,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -37,6 +51,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ptk.codigouitest.R
 import com.ptk.codigouitest.ui.theme.Blue
 import com.ptk.codigouitest.ui.theme.Gold
@@ -44,25 +59,60 @@ import com.ptk.codigouitest.ui.theme.Grey
 import com.ptk.codigouitest.ui.theme.LightGrey
 import com.ptk.codigouitest.ui.theme.Orange
 import com.ptk.codigouitest.ui.theme.Pink
+import com.ptk.codigouitest.viewmodel.HomeViewModel
 import ir.kaaveh.sdpcompose.sdp
 import ir.kaaveh.sdpcompose.ssp
+import kotlinx.coroutines.delay
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    homeViewModel: HomeViewModel = hiltViewModel()
+) {
+    val uiStates by homeViewModel.uiStates.collectAsState()
+    var page by remember { mutableStateOf(0) }
+    val pagerState = rememberPagerState()
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000L)
+
+            if (page == 2) {
+                page = 0
+            } else {
+                page += 1
+            }
+            pagerState.animateScrollToPage(
+                page = page,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    visibilityThreshold = 3F,
+                    stiffness = Spring.StiffnessVeryLow
+                )
+            )
+
+        }
+    }
 
 
-    HomeScreenContent()
+    HomeScreenContent(pagerState, homeViewModel)
+
+    // will trigger detail dialog when click slide show wall paper layout
+    DetailDialog(
+
+        showDialog = uiStates.isShowDetailDialog,
+        onDismissRequest = { homeViewModel.toggleDetailDialog(false) })
+
+
 }
 
 @Composable
-fun HomeScreenContent() {
+fun HomeScreenContent(pagerState: PagerState, homeViewModel: HomeViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
         ToolbarLayout()
-        SlideShowWallPaper()
+        SlideShowWallPaper(pagerState, homeViewModel)
         NavigationIconLayout()
         TicketsCardLayout()
         UpcomingShowLayout()
@@ -80,7 +130,9 @@ fun ToolbarLayout() {
         Icon(
             imageVector = Icons.Filled.KeyboardArrowLeft,
             contentDescription = "BackArrowIcon",
-            modifier = Modifier.size(30.sdp)
+            modifier = Modifier
+                .size(30.sdp)
+                .padding(start = 8.sdp)
         )
         Icon(
             painter = painterResource(id = R.drawable.sea_title_icon),
@@ -91,7 +143,9 @@ fun ToolbarLayout() {
         Icon(
             painter = painterResource(id = R.drawable.notification_icon),
             contentDescription = "NotificationIcon",
-            modifier = Modifier.size(30.sdp),
+            modifier = Modifier
+                .size(30.sdp)
+                .padding(end = 8.sdp),
             tint = Orange,
 
             )
@@ -99,17 +153,16 @@ fun ToolbarLayout() {
 }
 
 @Composable
-fun SlideShowWallPaper() {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Image(
-            painter = painterResource(id = R.drawable.aquarium_wallpaper2),
-            contentDescription = "Aquarium Wallpaper",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.sdp),
-            contentScale = ContentScale.FillBounds
-
-        )
+fun SlideShowWallPaper(pagerState: PagerState, homeViewModel: HomeViewModel) {
+    val images = listOf(
+        R.drawable.aquarium_wallpaper2,
+        R.drawable.aquarium_wallpaper,
+        R.drawable.aquarium_wallpaper3
+    )
+    Box() {
+        SlideShow(images, pagerState = pagerState) {
+            homeViewModel.toggleDetailDialog(true)
+        }
         Text(
             "Don't miss our \ndaily Dive Feeding!",
             fontSize = 18.ssp,
@@ -131,7 +184,7 @@ fun NavigationIconLayout() {
                 contentDescription = "MapIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             Icon(
@@ -139,7 +192,7 @@ fun NavigationIconLayout() {
                 contentDescription = "InhabitantsIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             Icon(
@@ -147,7 +200,7 @@ fun NavigationIconLayout() {
                 contentDescription = "ShowsIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             Icon(
@@ -155,7 +208,7 @@ fun NavigationIconLayout() {
                 contentDescription = "ShoppingIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
         }
@@ -166,7 +219,7 @@ fun NavigationIconLayout() {
                 contentDescription = "DineIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             Icon(
@@ -174,7 +227,7 @@ fun NavigationIconLayout() {
                 contentDescription = "MeetGreetIcon",
                 Modifier
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             //just a placeholder for placing techniques
@@ -184,7 +237,7 @@ fun NavigationIconLayout() {
                 Modifier
                     .alpha(0F)
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
             Icon(
@@ -193,7 +246,7 @@ fun NavigationIconLayout() {
                 Modifier
                     .alpha(0F)
                     .size(25.sdp)
-                    .drawBehind { drawCircle(Grey, 80F) },
+                    .drawBehind { drawCircle(Grey, 50F) },
                 tint = Gold,
             )
         }
@@ -206,18 +259,24 @@ fun TicketsCardLayout() {
         Modifier.fillMaxWidth(),
     ) {
         CardLayout(
-            "My e-tickets", "There aren't\nany yet.", "Retrieve here", R.drawable.eticket_icon,
+            "My e-tickets",
+            "There aren't\nany yet.",
+            "Retrieve here",
+            R.drawable.baseline_airplane_ticket_24,
             LightGrey
         )
         CardLayout(
-            "Park hours", "Today, 13 Feb\n10am - 5pm", "Plan my visit", R.drawable.park_hour_icon,
+            "Park hours",
+            "Today, 13 Feb\n10am - 5pm",
+            "Plan my visit",
+            R.drawable.baseline_access_time_24,
             Color.Black
         )
     }
 }
 
 @Composable
-fun CardLayout(
+fun RowScope.CardLayout(
     titleText: String,
     messageText: String,
     buttonText: String,
@@ -226,8 +285,8 @@ fun CardLayout(
 ) {
     Card(
         modifier = Modifier
-            .padding(top = 32.sdp, start = 16.sdp, bottom = 32.sdp)
-            .width(130.sdp),
+            .padding(top = 32.sdp, bottom = 32.sdp, start = 8.sdp, end = 8.sdp)
+            .weight(1F),
         colors = CardDefaults.cardColors(
             containerColor = Color.White,
         ),
@@ -249,7 +308,8 @@ fun CardLayout(
                     painter = painterResource(id = icon),
                     contentDescription = "ETicketsIcon",
                     modifier = Modifier
-                        .size(25.sdp), tint = Gold
+                        .size(25.sdp),
+                    tint = Gold
                 )
 
             }
